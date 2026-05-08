@@ -10,12 +10,13 @@
 
 ## Dependencias Principales
 
-| Dependencia                 | Versión | Propósito                                                           |
-| --------------------------- | ------- | ------------------------------------------------------------------- |
-| `@modelcontextprotocol/sdk` | ^1.24.1 | Implementación del protocolo MCP (servidor, herramientas, recursos) |
-| `axios`                     | ^1.13.6 | Cliente HTTP para invocar los endpoints de la API REST              |
-| `yargs`                     | ^17.7.2 | Parseo de argumentos CLI                                            |
-| `openapi-types`             | ^12.1.3 | Tipos TypeScript para especificaciones OpenAPI                      |
+| Dependencia                 | Versión | Propósito                                                                       |
+| --------------------------- | ------- | ------------------------------------------------------------------------------- |
+| `@modelcontextprotocol/sdk` | ^1.24.1 | Implementación del protocolo MCP (servidor, herramientas, recursos)             |
+| `axios`                     | ^1.13.6 | Cliente HTTP para invocar los endpoints de la API REST                          |
+| `yargs`                     | ^17.7.2 | Parseo de argumentos CLI                                                        |
+| `openapi-types`             | ^12.1.3 | Tipos TypeScript para especificaciones OpenAPI                                  |
+| `playwright-core`           | ^1.x    | Automatización de navegador para flujos OAuth interactivos (browser-based auth) |
 
 ## Build
 
