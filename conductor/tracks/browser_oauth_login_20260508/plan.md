@@ -2,23 +2,23 @@
 
 ## Fase 1: Detección de Respuestas de Autenticación
 
-- [ ] Task: Escribir tests para el detector de respuestas auth
-  - [ ] Crear `src/auth/auth-response-detector.test.ts`
-  - [ ] Test: detecta redirect 302 con cabecera `Location` como auth response
-  - [ ] Test: detecta redirect 301/303/307/308 con cabecera `Location`
-  - [ ] Test: detecta 401 con cabecera `WWW-Authenticate` que contiene URL
-  - [ ] Test: detecta 401 con body JSON que contiene `auth_url`
-  - [ ] Test: detecta 401 con body JSON que contiene `login_url` y `authorization_url`
-  - [ ] Test: no detecta falsos positivos (200, 404, 500, 401 sin URL)
-  - [ ] Confirmar que los tests fallan (fase roja)
-- [ ] Task: Implementar `AuthResponseDetector`
-  - [ ] Crear `src/auth/auth-response-detector.ts`
-  - [ ] Implementar `isAuthResponse(response): boolean`
-  - [ ] Implementar `extractAuthUrl(response): string | null` con prioridad: Location > WWW-Authenticate > body JSON
-  - [ ] Confirmar que los tests pasan (fase verde)
-  - [ ] Refactorizar si es necesario
-- [ ] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%)
-- [ ] Task: Commitear cambios (`feat(auth): Add auth response detector`)
+- [x] Task: Escribir tests para el detector de respuestas auth (f327804)
+  - [x] Crear `src/auth/auth-response-detector.test.ts`
+  - [x] Test: detecta redirect 302 con cabecera `Location` como auth response
+  - [x] Test: detecta redirect 301/303/307/308 con cabecera `Location`
+  - [x] Test: detecta 401 con cabecera `WWW-Authenticate` que contiene URL
+  - [x] Test: detecta 401 con body JSON que contiene `auth_url`
+  - [x] Test: detecta 401 con body JSON que contiene `login_url` y `authorization_url`
+  - [x] Test: no detecta falsos positivos (200, 404, 500, 401 sin URL)
+  - [x] Confirmar que los tests fallan (fase roja)
+- [x] Task: Implementar `AuthResponseDetector` (f327804)
+  - [x] Crear `src/auth/auth-response-detector.ts`
+  - [x] Implementar `isAuthResponse(response): boolean`
+  - [x] Implementar `extractAuthUrl(response): string | null` con prioridad: Location > WWW-Authenticate > body JSON
+  - [x] Confirmar que los tests pasan (fase verde)
+  - [x] Refactorizar si es necesario
+- [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (f327804)
+- [x] Task: Commitear cambios (`feat(auth): Add auth response detector`) (f327804)
 - [ ] Task: Conductor - User Manual Verification 'Fase 1: Detección de Respuestas de Autenticación' (Protocol in workflow.md)
 
 ---
