@@ -101,4 +101,7 @@
 - [x] server.ts: wire `fallbackLoginUrl` from `new URL(API_BASE_URL).origin` + `onTokenExtracted` callback (8aace27)
 - [x] build.js: add `playwright-core` and `chromium-bidi` to esbuild externals (8aace27)
 - [x] Tests: 14 new tests, 449/450 passing (8aace27)
-- [ ] Task: Manual verification with `turbine-local` — send tool call with expired token, confirm browser opens, user logs in, call retried automatically
+- [x] fix: preserve HTTP response in `ApiRequestError` so interceptor can inspect status (e5112e8)
+- [x] feat: `TokenStore` — persist extracted tokens to `~/.config/mcp-openapi-server/tokens.json` keyed by origin; load on startup (ff1f0eb)
+- [x] fix: detect HTTP-only cookies (`jwt-token`) via `context.cookies()` polling in addition to localStorage (0664df8)
+- [x] Task: Manual verification with `turbine-local` — browser opened, user logged in via OIDC, `jwt-token` cookie detected, browser closed automatically, `get-environments` returned live data ✅ (0664df8)
