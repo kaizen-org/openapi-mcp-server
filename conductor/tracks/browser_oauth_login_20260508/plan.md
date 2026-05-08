@@ -75,20 +75,20 @@
 
 ## Fase 4: Configuración Opt-in
 
-- [ ] Task: Escribir tests para la opción de configuración `browserAuth`
-  - [ ] Test: `--browser-auth` flag CLI activa el comportamiento
-  - [ ] Test: `browserAuth: true` en configuración programática activa el comportamiento
-  - [ ] Test: por defecto (`browserAuth` ausente), el comportamiento está desactivado
-  - [ ] Test: `--browser-auth-timeout` CLI configura el timeout (en segundos)
-  - [ ] Confirmar que los tests fallan (fase roja)
-- [ ] Task: Implementar la opción `browserAuth` en la configuración del servidor
-  - [ ] Añadir `browserAuth?: boolean` y `browserAuthTimeoutMs?: number` a la interfaz de configuración
-  - [ ] Añadir argumento `--browser-auth` y `--browser-auth-timeout` al parser CLI (`yargs`)
-  - [ ] Pasar la configuración al `BrowserAuthInterceptor`
-  - [ ] Confirmar que los tests pasan (fase verde)
-- [ ] Task: Actualizar documentación
-  - [ ] Añadir descripción de `--browser-auth` y `--browser-auth-timeout` al README
-  - [ ] Actualizar JSDoc de las interfaces afectadas
-- [ ] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%)
-- [ ] Task: Commitear cambios (`feat(auth): Add browserAuth config option and CLI flag`)
+- [x] Task: Escribir tests para la opción de configuración `browserAuth` (3708c4d)
+  - [x] Test: `--browser-auth` flag CLI activa el comportamiento
+  - [x] Test: `browserAuth: true` en configuración programática activa el comportamiento
+  - [x] Test: por defecto (`browserAuth` ausente), el comportamiento está desactivado
+  - [x] Test: `--browser-auth-timeout` CLI configura el timeout (en segundos)
+  - [x] Confirmar que los tests fallan (fase roja)
+- [x] Task: Implementar la opción `browserAuth` en la configuración del servidor (3708c4d)
+  - [x] Añadir `browserAuth?: boolean` y `browserAuthTimeoutMs?: number` a la interfaz de configuración
+  - [x] Añadir argumento `--browser-auth` y `--browser-auth-timeout` al parser CLI (`yargs`)
+  - [x] Pasar la configuración al `BrowserAuthInterceptor`
+  - [x] Confirmar que los tests pasan (fase verde)
+- [x] Task: Actualizar documentación (3708c4d)
+  - [x] Añadir descripción de `--browser-auth` y `--browser-auth-timeout` al README
+  - [x] Actualizar JSDoc de las interfaces afectadas
+- [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (3708c4d)
+- [x] Task: Commitear cambios (`feat(auth): Add browserAuth config option and CLI flag`) (3708c4d)
 - [ ] Task: Conductor - User Manual Verification 'Fase 4: Configuración Opt-in' (Protocol in workflow.md)
