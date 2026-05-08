@@ -21,6 +21,7 @@ import { Logger } from "./utils/logger"
 import { AuthResponseDetector } from "./auth/auth-response-detector.js"
 import { BrowserAuthHandler } from "./auth/browser-auth-handler.js"
 import { BrowserAuthInterceptor } from "./auth/browser-auth-interceptor.js"
+import { TokenStore } from "./auth/token-store.js"
 
 /**
  * MCP server implementation for OpenAPI specifications
@@ -90,6 +91,16 @@ export class OpenAPIServer {
           })()
         : undefined
 
+      const tokenStore = new TokenStore()
+
+      // Restore persisted token from a previous session
+      if (fallbackLoginUrl) {
+        const persisted = tokenStore.load(fallbackLoginUrl)
+        if (persisted) {
+          this.apiClient.updateAuthHeaders({ Authorization: `Bearer ${persisted}` })
+        }
+      }
+
       this.browserAuthInterceptor = new BrowserAuthInterceptor(
         new AuthResponseDetector(),
         new BrowserAuthHandler(),
@@ -99,6 +110,10 @@ export class OpenAPIServer {
           fallbackLoginUrl,
           onTokenExtracted: (token: string) => {
             this.apiClient.updateAuthHeaders({ Authorization: `Bearer ${token}` })
+            // Persist so future process restarts don't require re-login
+            if (fallbackLoginUrl) {
+              tokenStore.save(fallbackLoginUrl, token)
+            }
           },
         },
       )
