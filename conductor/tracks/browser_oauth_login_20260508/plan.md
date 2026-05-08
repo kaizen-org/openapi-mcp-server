@@ -23,7 +23,7 @@
 
 ---
 
-## Fase 2: Integrador de Playwright
+## Fase 2: Integrador de Playwright [checkpoint: 2ec15d4]
 
 - [x] Task: Añadir `playwright-core` como dependencia de producción (08d451a)
   - [x] Ejecutar `npm install playwright-core`
@@ -44,7 +44,7 @@
   - [x] Refactorizar si es necesario
 - [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (08d451a)
 - [x] Task: Commitear cambios (`feat(auth): Add Playwright browser auth handler`) (08d451a)
-- [ ] Task: Conductor - User Manual Verification 'Fase 2: Integrador de Playwright' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Fase 2: Integrador de Playwright' (Protocol in workflow.md) (2ec15d4)
 
 ---
 
