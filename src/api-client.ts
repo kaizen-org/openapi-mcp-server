@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from "axios"
+import axios, { AxiosInstance, AxiosError, AxiosResponse } from "axios"
 import { Tool } from "@modelcontextprotocol/sdk/types.js"
 import type { Agent as HttpsAgent } from "node:https"
 import { AuthProvider, StaticAuthProvider, isAuthError } from "./auth-provider.js"
@@ -6,6 +6,21 @@ import { parseToolId as parseToolIdUtil, generateToolId } from "./utils/tool-id.
 import { isValidHttpMethod, isGetLikeMethod, VALID_HTTP_METHODS } from "./utils/http-methods.js"
 import { OpenAPISpecLoader } from "./openapi-loader.js"
 import { OpenAPIV3 } from "openapi-types"
+
+/**
+ * Error thrown by ApiClient when an API request fails.
+ * Preserves the HTTP response so interceptors (e.g. BrowserAuthInterceptor)
+ * can inspect the status code and headers.
+ */
+export class ApiRequestError extends Error {
+  readonly response?: AxiosResponse
+
+  constructor(message: string, response?: AxiosResponse) {
+    super(message)
+    this.name = "ApiRequestError"
+    this.response = response
+  }
+}
 
 /**
  * System-controlled HTTP headers that should NEVER be set via user parameters
@@ -373,7 +388,7 @@ export class ApiClient {
           // If auth handler throws, use that error instead
         }
 
-        throw new Error(
+        throw new ApiRequestError(
           `API request failed: ${axiosError.message}${
             axiosError.response
               ? ` (${axiosError.response.status}: ${this.sanitizeErrorData(
@@ -382,6 +397,7 @@ export class ApiClient {
                 )})`
               : ""
           }`,
+          axiosError.response,
         )
       }
       throw error
@@ -688,7 +704,7 @@ export class ApiClient {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError
-        throw new Error(
+        throw new ApiRequestError(
           `API request failed: ${axiosError.message}${
             axiosError.response
               ? ` (${axiosError.response.status}: ${this.sanitizeErrorData(
@@ -697,6 +713,7 @@ export class ApiClient {
                 )})`
               : ""
           }`,
+          axiosError.response,
         )
       }
       throw error

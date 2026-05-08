@@ -92,3 +92,13 @@
 - [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (3708c4d)
 - [x] Task: Commitear cambios (`feat(auth): Add browserAuth config option and CLI flag`) (3708c4d)
 - [x] Task: Conductor - User Manual Verification 'Fase 4: Configuración Opt-in' (Protocol in workflow.md) (b683458)
+
+## Fase 5: SPA Fallback Login (Turbine/OIDC) [checkpoint: 8aace27]
+
+- [x] BrowserAuthHandler: add `openBrowserAndExtractToken(loginUrl, options)` — Playwright headless:false, localStorage key poll (`access_token`, `id_token`, `token`, `auth_token`), closes browser in finally (8aace27)
+- [x] BrowserAuthInterceptor: SPA fallback — 401 without auth URL + `fallbackLoginUrl` → open browser → retry with new token (8aace27)
+- [x] ApiClient: `updateAuthHeaders(headers)` — replaces StaticAuthProvider post-login (8aace27)
+- [x] server.ts: wire `fallbackLoginUrl` from `new URL(API_BASE_URL).origin` + `onTokenExtracted` callback (8aace27)
+- [x] build.js: add `playwright-core` and `chromium-bidi` to esbuild externals (8aace27)
+- [x] Tests: 14 new tests, 449/450 passing (8aace27)
+- [ ] Task: Manual verification with `turbine-local` — send tool call with expired token, confirm browser opens, user logs in, call retried automatically
