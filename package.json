@@ -1,5 +1,5 @@
 {
-  "name": "@ivotoby/openapi-mcp-server",
+  "name": "gabi/openapi-mcp-server",
   "version": "0.1.0",
   "description": "An MCP server that exposes OpenAPI endpoints as resources",
   "license": "MIT",

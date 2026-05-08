@@ -94,6 +94,16 @@ export class ApiClient {
   }
 
   /**
+   * Replace the auth headers used for all subsequent API calls.
+   * Useful after a browser-based OAuth flow has completed and a new token is available.
+   *
+   * @param headers - New authentication headers (e.g. { Authorization: "Bearer <token>" })
+   */
+  updateAuthHeaders(headers: Record<string, string>): void {
+    this.authProvider = new StaticAuthProvider(headers)
+  }
+
+  /**
    * Get a tool definition by ID
    *
    * @param toolId - The tool ID

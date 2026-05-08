@@ -128,3 +128,96 @@ describe("BrowserAuthInterceptor", () => {
     expect(openBrowserSpy).not.toHaveBeenCalled()
   })
 })
+
+describe("BrowserAuthInterceptor — SPA fallback (401 without auth URL)", () => {
+  let detector: AuthResponseDetector
+  let handler: BrowserAuthHandler
+  let extractTokenSpy: ReturnType<typeof vi.spyOn>
+
+  const make401Error = () =>
+    Object.assign(new Error("API request failed: (401: Unauthorized)"), {
+      response: { status: 401, headers: { "www-authenticate": "Bearer" }, data: {} },
+    })
+
+  beforeEach(() => {
+    detector = new AuthResponseDetector()
+    handler = new BrowserAuthHandler()
+    extractTokenSpy = vi
+      .spyOn(handler, "openBrowserAndExtractToken")
+      .mockResolvedValue("eyJnew-token")
+  })
+
+  it("when 401 has no auth URL and fallbackLoginUrl is set, opens browser via openBrowserAndExtractToken", async () => {
+    const onTokenExtracted = vi.fn()
+    const interceptor = new BrowserAuthInterceptor(detector, handler, {
+      browserAuth: true,
+      fallbackLoginUrl: "https://app.example.com",
+      onTokenExtracted,
+    })
+
+    const apiCall = vi.fn().mockRejectedValueOnce(make401Error()).mockResolvedValue({ ok: true })
+
+    await interceptor.intercept(apiCall)
+
+    expect(extractTokenSpy).toHaveBeenCalledWith("https://app.example.com", expect.any(Object))
+  })
+
+  it("calls onTokenExtracted callback with the extracted token", async () => {
+    const onTokenExtracted = vi.fn()
+    const interceptor = new BrowserAuthInterceptor(detector, handler, {
+      browserAuth: true,
+      fallbackLoginUrl: "https://app.example.com",
+      onTokenExtracted,
+    })
+
+    const apiCall = vi.fn().mockRejectedValueOnce(make401Error()).mockResolvedValue({ ok: true })
+
+    await interceptor.intercept(apiCall)
+
+    expect(onTokenExtracted).toHaveBeenCalledWith("eyJnew-token")
+  })
+
+  it("retries the apiCall after token extraction and returns the actual result", async () => {
+    const interceptor = new BrowserAuthInterceptor(detector, handler, {
+      browserAuth: true,
+      fallbackLoginUrl: "https://app.example.com",
+      onTokenExtracted: vi.fn(),
+    })
+
+    const actualResult = { components: [] }
+    const apiCall = vi.fn().mockRejectedValueOnce(make401Error()).mockResolvedValue(actualResult)
+
+    const result = await interceptor.intercept(apiCall)
+
+    expect(apiCall).toHaveBeenCalledTimes(2)
+    expect(result).toBe(actualResult)
+  })
+
+  it("throws original error when 401 has no auth URL and no fallbackLoginUrl is configured", async () => {
+    const interceptor = new BrowserAuthInterceptor(detector, handler, {
+      browserAuth: true,
+      // no fallbackLoginUrl
+    })
+
+    const error = make401Error()
+    const apiCall = vi.fn().mockRejectedValue(error)
+
+    await expect(interceptor.intercept(apiCall)).rejects.toThrow(error)
+    expect(extractTokenSpy).not.toHaveBeenCalled()
+  })
+
+  it("throws original error when token extraction returns null (timeout)", async () => {
+    extractTokenSpy.mockResolvedValue(null)
+
+    const interceptor = new BrowserAuthInterceptor(detector, handler, {
+      browserAuth: true,
+      fallbackLoginUrl: "https://app.example.com",
+      onTokenExtracted: vi.fn(),
+    })
+
+    const error = make401Error()
+    const apiCall = vi.fn().mockRejectedValue(error)
+
+    await expect(interceptor.intercept(apiCall)).rejects.toThrow(error)
+  })
+})

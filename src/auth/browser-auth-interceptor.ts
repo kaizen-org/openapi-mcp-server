@@ -4,6 +4,17 @@ import { BrowserAuthHandler, BrowserAuthOptions } from "./browser-auth-handler.j
 export interface BrowserAuthInterceptorOptions extends BrowserAuthOptions {
   /** When true, browser-based auth interception is active. Default: false. */
   browserAuth?: boolean
+  /**
+   * Fallback login URL to open when a 401 response contains no auth redirect URL.
+   * Intended for SPA apps where the OAuth flow is fully client-side.
+   * Typically the origin of the API base URL (e.g. "https://app.example.com").
+   */
+  fallbackLoginUrl?: string
+  /**
+   * Callback invoked with the extracted Bearer token after a successful SPA fallback login.
+   * Use this to update the API client's auth headers before the retry.
+   */
+  onTokenExtracted?: (token: string) => void
 }
 
 export interface ToolCallResult {
@@ -13,10 +24,13 @@ export interface ToolCallResult {
 
 /**
  * Intercepts API call errors to detect browser-based auth challenges.
- * When enabled, opens a Playwright browser for the user to complete the OAuth flow
- * instead of returning the raw 401/3xx response to the LLM.
  *
- * Extension point: wraps any async API call function in the tool handler.
+ * Priority:
+ * 1. If the response contains an auth URL (Location header, WWW-Authenticate, JSON body):
+ *    → opens that URL in a browser, waits for the user to close the page, returns a retry message.
+ * 2. (Fallback) If the response is a 401 with no auth URL and `fallbackLoginUrl` is set:
+ *    → opens the fallback URL, waits for an OIDC token to appear in localStorage,
+ *      calls `onTokenExtracted`, retries the API call, and returns the actual result.
  */
 export class BrowserAuthInterceptor {
   constructor(
@@ -25,62 +39,53 @@ export class BrowserAuthInterceptor {
     private options: BrowserAuthInterceptorOptions = {},
   ) {}
 
-  /**
-   * Wraps an async API call. If browser auth is enabled and the call fails with an
-   * auth-requiring response, opens the browser and returns a retry message to the LLM.
-   * Otherwise, passes the result or error through unchanged.
-   *
-   * @param apiCall - A function that executes the API call and returns a promise.
-   * @returns The API call result, or a ToolCallResult with a retry message if auth was required.
-   */
   async intercept<T>(apiCall: () => Promise<T>): Promise<T | ToolCallResult> {
     try {
       return await apiCall()
     } catch (error) {
-      // Only intercept if browser auth is enabled
       if (!this.options.browserAuth) {
         throw error
       }
 
-      // Check if the error carries an HTTP response we can inspect
       const httpResponse = this.extractHttpResponse(error)
       if (!httpResponse) {
         throw error
       }
 
-      // Detect if this is an auth challenge
-      if (!this.detector.isAuthResponse(httpResponse)) {
-        throw error
-      }
-
-      // Extract the auth URL
+      // ── Path 1: explicit auth URL in the response ──────────────────────────
       const authUrl = this.detector.extractAuthUrl(httpResponse)
-      if (!authUrl) {
-        throw error
+      if (authUrl) {
+        await this.handler.openBrowserForAuth(authUrl, {
+          timeoutMs: this.options.timeoutMs,
+        })
+        return {
+          content: [
+            {
+              type: "text",
+              text:
+                `Browser-based authentication completed successfully. ` +
+                `Please retry the operation — the API should now accept your request.`,
+            },
+          ],
+        } as ToolCallResult
       }
 
-      // Open browser and wait for the user to complete auth
-      await this.handler.openBrowserForAuth(authUrl, {
-        timeoutMs: this.options.timeoutMs,
-      })
+      // ── Path 2: SPA fallback — 401 with no auth URL ────────────────────────
+      if (httpResponse.status === 401 && this.options.fallbackLoginUrl) {
+        const token = await this.handler.openBrowserAndExtractToken(this.options.fallbackLoginUrl, {
+          timeoutMs: this.options.timeoutMs,
+        })
+        if (!token) {
+          throw error
+        }
+        this.options.onTokenExtracted?.(token)
+        return await apiCall()
+      }
 
-      // Return a retry message to the LLM
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Browser-based authentication completed successfully. ` +
-              `Please retry the operation — the API should now accept your request.`,
-          },
-        ],
-      } as ToolCallResult
+      throw error
     }
   }
 
-  /**
-   * Extracts an ApiResponse-compatible object from an error, if present.
-   */
   private extractHttpResponse(error: unknown): ApiResponse | null {
     if (
       error !== null &&

@@ -80,12 +80,26 @@ export class OpenAPIServer {
 
     // Set up browser auth interceptor if enabled
     if (this.config.browserAuth) {
+      const fallbackLoginUrl = this.config.apiBaseUrl
+        ? (() => {
+            try {
+              return new URL(this.config.apiBaseUrl).origin
+            } catch {
+              return undefined
+            }
+          })()
+        : undefined
+
       this.browserAuthInterceptor = new BrowserAuthInterceptor(
         new AuthResponseDetector(),
         new BrowserAuthHandler(),
         {
           browserAuth: true,
           timeoutMs: this.config.browserAuthTimeoutMs,
+          fallbackLoginUrl,
+          onTokenExtracted: (token: string) => {
+            this.apiClient.updateAuthHeaders({ Authorization: `Bearer ${token}` })
+          },
         },
       )
     }

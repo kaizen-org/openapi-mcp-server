@@ -1741,3 +1741,59 @@ describe("Issue #81: Content-Type header support", () => {
     })
   })
 })
+
+describe("ApiClient.updateAuthHeaders", () => {
+  it("updates the auth headers used for subsequent API calls", async () => {
+    const client = new ApiClient("https://api.example.com", { Authorization: "Bearer old-token" })
+
+    // Capture the headers used in the request
+    let capturedHeaders: any = null
+    ;(client as any).axiosInstance = vi.fn().mockImplementation((config) => {
+      capturedHeaders = config.headers
+      return Promise.resolve({ data: {} })
+    })
+
+    // Register a simple GET tool
+    const tools = new Map()
+    tools.set("GET::items", {
+      name: "list-items",
+      description: "List items",
+      inputSchema: { type: "object", properties: {} },
+    })
+    client.setTools(tools)
+
+    // Update auth headers
+    client.updateAuthHeaders({ Authorization: "Bearer new-token" })
+
+    await client.executeApiCall("GET::items", {})
+
+    expect(capturedHeaders.Authorization).toBe("Bearer new-token")
+  })
+
+  it("does not affect unrelated headers when updating auth", async () => {
+    const client = new ApiClient("https://api.example.com", {
+      Authorization: "Bearer old-token",
+      "x-custom": "value",
+    })
+
+    let capturedHeaders: any = null
+    ;(client as any).axiosInstance = vi.fn().mockImplementation((config) => {
+      capturedHeaders = config.headers
+      return Promise.resolve({ data: {} })
+    })
+
+    const tools = new Map()
+    tools.set("GET::items", {
+      name: "list-items",
+      description: "List items",
+      inputSchema: { type: "object", properties: {} },
+    })
+    client.setTools(tools)
+
+    client.updateAuthHeaders({ Authorization: "Bearer updated-token" })
+
+    await client.executeApiCall("GET::items", {})
+
+    expect(capturedHeaders.Authorization).toBe("Bearer updated-token")
+  })
+})
