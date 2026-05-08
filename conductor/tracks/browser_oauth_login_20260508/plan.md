@@ -73,7 +73,7 @@
 
 ---
 
-## Fase 4: Configuración Opt-in
+## Fase 4: Configuración Opt-in [checkpoint: b683458]
 
 - [x] Task: Escribir tests para la opción de configuración `browserAuth` (3708c4d)
   - [x] Test: `--browser-auth` flag CLI activa el comportamiento
@@ -91,4 +91,4 @@
   - [x] Actualizar JSDoc de las interfaces afectadas
 - [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (3708c4d)
 - [x] Task: Commitear cambios (`feat(auth): Add browserAuth config option and CLI flag`) (3708c4d)
-- [ ] Task: Conductor - User Manual Verification 'Fase 4: Configuración Opt-in' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Fase 4: Configuración Opt-in' (Protocol in workflow.md) (b683458)
