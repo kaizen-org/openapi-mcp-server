@@ -157,6 +157,56 @@ npx @ivotoby/openapi-mcp-server \
   --verbose false
 ```
 
+## Browser-Based OAuth Login Interception
+
+When a protected API returns an OAuth redirect (3xx with `Location` header) or a 401 with an `auth_url` in the response body, the server can automatically open a Chromium browser window for you to complete the interactive login flow. The MCP tool call is suspended until the browser session completes.
+
+This feature is **disabled by default** and must be opted into explicitly.
+
+### Enable via CLI
+
+```bash
+npx @ivotoby/openapi-mcp-server \
+  --api-base-url https://api.example.com \
+  --openapi-spec ./openapi.yaml \
+  --browser-auth
+```
+
+With a custom timeout (default is 5 minutes = 300 seconds):
+
+```bash
+npx @ivotoby/openapi-mcp-server \
+  --api-base-url https://api.example.com \
+  --openapi-spec ./openapi.yaml \
+  --browser-auth \
+  --browser-auth-timeout 600
+```
+
+### Enable via Library API
+
+```ts
+import { OpenAPIServer } from "@ivotoby/openapi-mcp-server"
+
+const server = new OpenAPIServer({
+  apiBaseUrl: "https://api.example.com",
+  openApiSpec: "./openapi.yaml",
+  specInputMethod: "file",
+  browserAuth: true,
+  browserAuthTimeoutMs: 600_000, // 10 minutes
+  // ...
+})
+```
+
+### How It Works
+
+1. The server invokes the API tool as usual.
+2. If the response is a redirect (301/302/303/307/308) with a `Location` URL, or a 401 with an auth URL in the `WWW-Authenticate` header or JSON body (`auth_url`, `login_url`, `authorization_url`), the server intercepts it.
+3. A Chromium browser window opens at the detected auth URL.
+4. You complete the login in the browser.
+5. Once the browser page closes, the tool call resumes and the LLM receives a message to retry the operation.
+
+> **Note:** Requires `playwright-core` (already included as a dependency). Chromium is downloaded on first use by Playwright if not already installed.
+
 ## Mutual TLS (mTLS)
 
 If your upstream API requires client certificate authentication, you can attach TLS credentials directly to outbound requests.

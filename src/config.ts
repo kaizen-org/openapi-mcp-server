@@ -224,6 +224,15 @@ export function loadConfig(): OpenAPIMCPServerConfig {
       type: "string",
       description: "Enable verbose logging",
     })
+    .option("browser-auth", {
+      type: "boolean",
+      description:
+        "Enable browser-based OAuth login interception (opens Chromium for interactive auth flows)",
+    })
+    .option("browser-auth-timeout", {
+      type: "number",
+      description: "Timeout in seconds for browser auth flow (default: 300 = 5 minutes)",
+    })
     .help()
     .parseSync()
 
@@ -343,5 +352,9 @@ export function loadConfig(): OpenAPIMCPServerConfig {
     resourcesInline:
       (argv["resources-inline"] as string | undefined) || process.env.RESOURCES_INLINE,
     verbose,
+    browserAuth: argv["browser-auth"] ? true : undefined,
+    browserAuthTimeoutMs: argv["browser-auth-timeout"]
+      ? (argv["browser-auth-timeout"] as number) * 1000
+      : undefined,
   }
 }
