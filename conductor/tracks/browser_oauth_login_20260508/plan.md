@@ -50,25 +50,25 @@
 
 ## Fase 3: Interceptor en el Handler de Tools
 
-- [ ] Task: Analizar el flujo de invocación de tools actual
-  - [ ] Identificar dónde se procesa la respuesta HTTP de la API en el código existente
-  - [ ] Documentar el punto de extensión (sin modificar código aún)
-- [ ] Task: Escribir tests de integración para el interceptor
-  - [ ] Crear `src/auth/browser-auth-interceptor.test.ts`
-  - [ ] Test: cuando `browserAuth=false`, la respuesta 401 se devuelve al LLM sin cambios
-  - [ ] Test: cuando `browserAuth=true` y respuesta es 302, se llama a `BrowserAuthHandler` y se suspende
-  - [ ] Test: cuando `browserAuth=true` y respuesta es 401 con auth URL, se llama a `BrowserAuthHandler`
-  - [ ] Test: tras completar el login en el navegador, el LLM recibe mensaje de reintento
-  - [ ] Confirmar que los tests fallan (fase roja)
-- [ ] Task: Implementar `BrowserAuthInterceptor`
-  - [ ] Crear `src/auth/browser-auth-interceptor.ts`
-  - [ ] Inyectar `AuthResponseDetector` y `BrowserAuthHandler`
-  - [ ] Implementar `intercept(response, toolCallContext): Promise<ToolResult>`
-  - [ ] Integrar en el handler de tools existente de forma no intrusiva
-  - [ ] Confirmar que los tests pasan (fase verde)
-  - [ ] Refactorizar si es necesario
-- [ ] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%)
-- [ ] Task: Commitear cambios (`feat(auth): Integrate browser auth interceptor into tool handler`)
+- [x] Task: Analizar el flujo de invocación de tools actual (e142367)
+  - [x] Identificar dónde se procesa la respuesta HTTP de la API en el código existente
+  - [x] Documentar el punto de extensión (sin modificar código aún)
+- [x] Task: Escribir tests de integración para el interceptor (e142367)
+  - [x] Crear `src/auth/browser-auth-interceptor.test.ts`
+  - [x] Test: cuando `browserAuth=false`, la respuesta 401 se devuelve al LLM sin cambios
+  - [x] Test: cuando `browserAuth=true` y respuesta es 302, se llama a `BrowserAuthHandler` y se suspende
+  - [x] Test: cuando `browserAuth=true` y respuesta es 401 con auth URL, se llama a `BrowserAuthHandler`
+  - [x] Test: tras completar el login en el navegador, el LLM recibe mensaje de reintento
+  - [x] Confirmar que los tests fallan (fase roja)
+- [x] Task: Implementar `BrowserAuthInterceptor` (e142367)
+  - [x] Crear `src/auth/browser-auth-interceptor.ts`
+  - [x] Inyectar `AuthResponseDetector` y `BrowserAuthHandler`
+  - [x] Implementar `intercept(response, toolCallContext): Promise<ToolResult>`
+  - [x] Integrar en el handler de tools existente de forma no intrusiva
+  - [x] Confirmar que los tests pasan (fase verde)
+  - [x] Refactorizar si es necesario
+- [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (e142367)
+- [x] Task: Commitear cambios (`feat(auth): Integrate browser auth interceptor into tool handler`) (e142367)
 - [ ] Task: Conductor - User Manual Verification 'Fase 3: Interceptor en el Handler de Tools' (Protocol in workflow.md)
 
 ---
