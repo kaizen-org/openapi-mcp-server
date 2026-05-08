@@ -32,6 +32,7 @@ El OpenAPI MCP Server tiende un puente entre los agentes de IA basados en LLMs y
 - **Punto de entrada CLI**: `npx @ivotoby/openapi-mcp-server` para uso inmediato sin código
 - **API de librería**: Clase `OpenAPIServer` para integración programática
 - **Soporte Docker**: Dockerfile incluido para despliegues en contenedores
+- **Interceptor de login OAuth vía navegador**: Cuando `--browser-auth` está activo, detecta respuestas 401/3xx con URLs de autenticación y abre automáticamente un navegador Chromium visible para que el usuario complete el flujo OAuth, reanudando la tool call al terminar
 
 ## Criterios de Éxito
 
