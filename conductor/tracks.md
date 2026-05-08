@@ -4,5 +4,5 @@ Este archivo registra todos los tracks principales del proyecto. Cada track tien
 
 ---
 
-- [ ] **Track: Browser-Based OAuth Login Interceptor**
-      _Link: [./tracks/browser_oauth_login_20260508/](./tracks/browser_oauth_login_20260508/)_
+- [~] **Track: Browser-Based OAuth Login Interceptor**
+  _Link: [./tracks/browser_oauth_login_20260508/](./tracks/browser_oauth_login_20260508/)_
