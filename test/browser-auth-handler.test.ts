@@ -84,8 +84,6 @@ describe("BrowserAuthHandler", () => {
   })
 
   it("should respect a configurable timeout", async () => {
-    // With very short timeout, if page doesn't close fast enough, it should still complete
-    // We mock waitForEvent to resolve immediately, so timeout doesn't fire
     await handler.openBrowserForAuth("https://auth.example.com/login", { timeoutMs: 100 })
 
     expect(mockPage.waitForEvent).toHaveBeenCalledWith(
@@ -106,7 +104,6 @@ describe("BrowserAuthHandler", () => {
 
 describe("BrowserAuthHandler.openBrowserAndExtractToken", () => {
   let handler: BrowserAuthHandler
-  let mockJsHandle: { jsonValue: ReturnType<typeof vi.fn> }
   let mockPage: Partial<Page>
   let mockContext: Partial<BrowserContext>
   let mockBrowser: Partial<Browser>
@@ -114,16 +111,15 @@ describe("BrowserAuthHandler.openBrowserAndExtractToken", () => {
   beforeEach(() => {
     handler = new BrowserAuthHandler()
 
-    mockJsHandle = { jsonValue: vi.fn().mockResolvedValue("eyJtoken123") }
-
     mockPage = {
       goto: vi.fn().mockResolvedValue(undefined),
-      waitForFunction: vi.fn().mockResolvedValue(mockJsHandle),
+      evaluate: vi.fn().mockResolvedValue(null), // no localStorage token by default
     }
 
     mockContext = {
       newPage: vi.fn().mockResolvedValue(mockPage),
       close: vi.fn().mockResolvedValue(undefined),
+      cookies: vi.fn().mockResolvedValue([]), // no cookies by default
     }
 
     mockBrowser = {
@@ -140,57 +136,74 @@ describe("BrowserAuthHandler.openBrowserAndExtractToken", () => {
   })
 
   it("opens browser at loginUrl", async () => {
+    // Immediately return a localStorage token so the poll exits fast
+    vi.mocked(mockPage.evaluate!).mockResolvedValue("eyJtoken123")
+
     await handler.openBrowserAndExtractToken("https://app.example.com")
 
     expect(chromium.launch).toHaveBeenCalledWith({ headless: false })
     expect(mockPage.goto).toHaveBeenCalledWith("https://app.example.com")
   })
 
-  it("waits for localStorage token via waitForFunction", async () => {
-    await handler.openBrowserAndExtractToken("https://app.example.com")
-
-    expect(mockPage.waitForFunction).toHaveBeenCalled()
-  })
-
-  it("returns the extracted token string", async () => {
-    mockJsHandle.jsonValue.mockResolvedValue("eyJmytoken")
+  it("returns token found in localStorage", async () => {
+    vi.mocked(mockPage.evaluate!).mockResolvedValue("eyJlocalStorageToken")
 
     const result = await handler.openBrowserAndExtractToken("https://app.example.com")
 
-    expect(result).toBe("eyJmytoken")
+    expect(result).toBe("eyJlocalStorageToken")
   })
 
-  it("returns null when waitForFunction times out", async () => {
-    const timeoutError = new Error("Timeout 100ms exceeded")
-    vi.mocked(mockPage.waitForFunction!).mockRejectedValue(timeoutError)
+  it("returns token found in HTTP-only cookie (jwt-token)", async () => {
+    vi.mocked(mockPage.evaluate!).mockResolvedValue(null) // nothing in localStorage
+    vi.mocked(mockContext.cookies!).mockResolvedValue([
+      { name: "jwt-token", value: "eyJcookieToken1234567890abc", domain: "app.example.com" } as any,
+    ])
 
     const result = await handler.openBrowserAndExtractToken("https://app.example.com", {
-      timeoutMs: 100,
+      timeoutMs: 2000,
+    })
+
+    expect(result).toBe("eyJcookieToken1234567890abc")
+  })
+
+  it("prefers localStorage over cookie when both are present", async () => {
+    vi.mocked(mockPage.evaluate!).mockResolvedValue("eyJlocalFirst")
+    vi.mocked(mockContext.cookies!).mockResolvedValue([
+      { name: "jwt-token", value: "eyJcookieSecond123456", domain: "app.example.com" } as any,
+    ])
+
+    const result = await handler.openBrowserAndExtractToken("https://app.example.com", {
+      timeoutMs: 2000,
+    })
+
+    expect(result).toBe("eyJlocalFirst")
+  })
+
+  it("returns null when timeout is reached with no token found", async () => {
+    // Both localStorage and cookies return nothing; very short timeout
+    vi.mocked(mockPage.evaluate!).mockResolvedValue(null)
+    vi.mocked(mockContext.cookies!).mockResolvedValue([])
+
+    const result = await handler.openBrowserAndExtractToken("https://app.example.com", {
+      timeoutMs: 50,
     })
 
     expect(result).toBeNull()
   })
 
-  it("passes timeout option to waitForFunction", async () => {
-    await handler.openBrowserAndExtractToken("https://app.example.com", { timeoutMs: 9000 })
-
-    expect(mockPage.waitForFunction).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.any(Array),
-      expect.objectContaining({ timeout: 9000 }),
-    )
-  })
-
   it("closes browser after successful token extraction", async () => {
+    vi.mocked(mockPage.evaluate!).mockResolvedValue("eyJtoken123")
+
     await handler.openBrowserAndExtractToken("https://app.example.com")
 
     expect(mockBrowser.close).toHaveBeenCalled()
   })
 
-  it("closes browser even when token extraction times out", async () => {
-    vi.mocked(mockPage.waitForFunction!).mockRejectedValue(new Error("Timeout 100ms exceeded"))
+  it("closes browser even when no token is found (timeout)", async () => {
+    vi.mocked(mockPage.evaluate!).mockResolvedValue(null)
+    vi.mocked(mockContext.cookies!).mockResolvedValue([])
 
-    await handler.openBrowserAndExtractToken("https://app.example.com", { timeoutMs: 100 })
+    await handler.openBrowserAndExtractToken("https://app.example.com", { timeoutMs: 50 })
 
     expect(mockBrowser.close).toHaveBeenCalled()
   })

@@ -12,6 +12,13 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 const TOKEN_STORAGE_KEYS = ["access_token", "id_token", "token", "auth_token"]
 
 /**
+ * Cookie names checked in priority order for session/JWT tokens.
+ * HTTP-only cookies are not accessible from JavaScript but are readable
+ * via Playwright's context.cookies() API.
+ */
+const TOKEN_COOKIE_NAMES = ["jwt-token", "access_token", "token", "auth_token", "id_token"]
+
+/**
  * Opens a Chromium browser window for the user to complete an interactive OAuth/auth flow.
  * Suspends the calling code until the browser page is closed or the timeout is reached.
  */
@@ -68,8 +75,9 @@ export class BrowserAuthHandler {
 
   /**
    * Launches a Chromium browser, navigates to the given login URL, and waits for an
-   * OIDC/OAuth access token to appear in the page's localStorage. Returns the token
-   * string, or null if the timeout is reached before a token is found.
+   * auth token to appear — first checking localStorage keys, then HTTP-only cookies
+   * via Playwright's context.cookies() API. Returns the token string, or null if the
+   * timeout is reached before a token is found.
    *
    * This is the fallback path for apps where the auth flow is fully client-side
    * (SPA + OIDC) and the API does not provide a redirect URL in the 401 response.
@@ -83,13 +91,15 @@ export class BrowserAuthHandler {
     options: BrowserAuthOptions = {},
   ): Promise<string | null> {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    const pollIntervalMs = 500
+    const deadline = Date.now() + timeoutMs
 
     const playwright = await import("playwright-core")
     const browser = await playwright.chromium.launch({ headless: false })
 
     process.stderr.write(
       `[MCP Browser Auth] Opening browser for login (token extraction): ${loginUrl}\n` +
-        `[MCP Browser Auth] Please complete the login. The tool call will resume automatically.\n`,
+        `[MCP Browser Auth] Please complete the login. The browser will close automatically.\n`,
     )
 
     try {
@@ -97,23 +107,45 @@ export class BrowserAuthHandler {
       const page = await context.newPage()
       await page.goto(loginUrl)
 
-      try {
-        const handle = await page.waitForFunction(
-          (keys: string[]) => {
+      // Poll until token found in localStorage OR cookies, or deadline reached
+      while (Date.now() < deadline) {
+        // 1. Check localStorage (non-HTTP-only tokens)
+        try {
+          const localStorageToken = await page.evaluate((keys: string[]) => {
             for (const key of keys) {
               const val = localStorage.getItem(key)
               if (val && val.length > 20) return val
             }
-            return undefined
-          },
-          TOKEN_STORAGE_KEYS,
-          { timeout: timeoutMs },
-        )
-        return (await handle.jsonValue()) as string
-      } catch {
-        // Timeout or other error — return null so caller can degrade gracefully
-        return null
+            return null
+          }, TOKEN_STORAGE_KEYS)
+
+          if (localStorageToken) {
+            process.stderr.write(`[MCP Browser Auth] Token found in localStorage.\n`)
+            return localStorageToken
+          }
+        } catch {
+          // Page may be navigating — ignore and retry
+        }
+
+        // 2. Check cookies (covers HTTP-only cookies like jwt-token)
+        try {
+          const cookies = await context.cookies()
+          for (const name of TOKEN_COOKIE_NAMES) {
+            const cookie = cookies.find((c) => c.name === name)
+            if (cookie && cookie.value.length > 20) {
+              process.stderr.write(`[MCP Browser Auth] Token found in cookie '${name}'.\n`)
+              return cookie.value
+            }
+          }
+        } catch {
+          // Context may be closing — ignore
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
       }
+
+      // Timeout reached
+      return null
     } finally {
       await browser.close()
     }
