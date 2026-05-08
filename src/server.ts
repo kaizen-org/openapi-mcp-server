@@ -18,6 +18,9 @@ import { StaticAuthProvider } from "./auth-provider.js"
 import { PromptsManager } from "./prompts-manager"
 import { ResourcesManager } from "./resources-manager"
 import { Logger } from "./utils/logger"
+import { AuthResponseDetector } from "./auth/auth-response-detector.js"
+import { BrowserAuthHandler } from "./auth/browser-auth-handler.js"
+import { BrowserAuthInterceptor } from "./auth/browser-auth-interceptor.js"
 
 /**
  * MCP server implementation for OpenAPI specifications
@@ -30,6 +33,7 @@ export class OpenAPIServer {
   private resourcesManager?: ResourcesManager
   private config: OpenAPIMCPServerConfig
   private logger: Logger
+  private browserAuthInterceptor?: BrowserAuthInterceptor
 
   constructor(config: OpenAPIMCPServerConfig) {
     this.config = config
@@ -73,6 +77,18 @@ export class OpenAPIServer {
       : new ApiClient(config.apiBaseUrl, authProviderOrHeaders, this.toolsManager.getSpecLoader())
 
     this.initializeHandlers()
+
+    // Set up browser auth interceptor if enabled
+    if (this.config.browserAuth) {
+      this.browserAuthInterceptor = new BrowserAuthInterceptor(
+        new AuthResponseDetector(),
+        new BrowserAuthHandler(),
+        {
+          browserAuth: true,
+          timeoutMs: this.config.browserAuthTimeoutMs,
+        },
+      )
+    }
   }
 
   private createApiClientOptions(): ApiClientOptions | undefined {
@@ -166,8 +182,21 @@ export class OpenAPIServer {
       this.logger.error(`Executing tool: ${toolId} (${tool.name})`)
 
       try {
-        // Execute the API call
-        const result = await this.apiClient.executeApiCall(toolId, params || {})
+        // Execute the API call, optionally intercepting browser-based auth challenges
+        const apiCall = () => this.apiClient.executeApiCall(toolId, params || {})
+        const result = this.browserAuthInterceptor
+          ? await this.browserAuthInterceptor.intercept(apiCall)
+          : await apiCall()
+
+        // If the interceptor returned a ToolCallResult (e.g. auth retry message), pass it through
+        if (
+          result !== null &&
+          typeof result === "object" &&
+          "content" in result &&
+          Array.isArray((result as { content: unknown }).content)
+        ) {
+          return result as { content: Array<{ type: string; text: string }> }
+        }
 
         return {
           content: [

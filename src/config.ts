@@ -49,6 +49,10 @@ export interface OpenAPIMCPServerConfig {
   /** Inline resources JSON content */
   resourcesInline?: string
   verbose?: boolean
+  /** Enable browser-based OAuth login interception. Default: false. */
+  browserAuth?: boolean
+  /** Timeout in milliseconds for browser auth flow. Default: 5 minutes (300000). */
+  browserAuthTimeoutMs?: number
 }
 
 /**
