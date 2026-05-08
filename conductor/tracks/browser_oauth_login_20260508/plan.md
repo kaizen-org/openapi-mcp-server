@@ -25,25 +25,25 @@
 
 ## Fase 2: Integrador de Playwright
 
-- [ ] Task: Añadir `playwright-core` como dependencia de producción
-  - [ ] Ejecutar `npm install playwright-core`
-  - [ ] Actualizar `conductor/tech-stack.md` con la nueva dependencia
-- [ ] Task: Escribir tests para el `BrowserAuthHandler`
-  - [ ] Crear `src/auth/browser-auth-handler.test.ts`
-  - [ ] Test: abre el navegador Chromium con la URL de autenticación dada (mock de playwright)
-  - [ ] Test: registra en stderr/log que se ha abierto el navegador
-  - [ ] Test: espera a que el navegador cierre / navegue al callback
-  - [ ] Test: lanza error descriptivo si Playwright no puede iniciar el navegador
-  - [ ] Test: respeta el timeout configurable (default 5 min)
-  - [ ] Confirmar que los tests fallan (fase roja)
-- [ ] Task: Implementar `BrowserAuthHandler`
-  - [ ] Crear `src/auth/browser-auth-handler.ts`
-  - [ ] Implementar `openBrowserForAuth(authUrl: string, options?: { timeoutMs?: number }): Promise<void>`
-  - [ ] Manejo de error si Playwright no está disponible
-  - [ ] Confirmar que los tests pasan (fase verde)
-  - [ ] Refactorizar si es necesario
-- [ ] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%)
-- [ ] Task: Commitear cambios (`feat(auth): Add Playwright browser auth handler`)
+- [x] Task: Añadir `playwright-core` como dependencia de producción (08d451a)
+  - [x] Ejecutar `npm install playwright-core`
+  - [x] Actualizar `conductor/tech-stack.md` con la nueva dependencia
+- [x] Task: Escribir tests para el `BrowserAuthHandler` (08d451a)
+  - [x] Crear `src/auth/browser-auth-handler.test.ts`
+  - [x] Test: abre el navegador Chromium con la URL de autenticación dada (mock de playwright)
+  - [x] Test: registra en stderr/log que se ha abierto el navegador
+  - [x] Test: espera a que el navegador cierre / navegue al callback
+  - [x] Test: lanza error descriptivo si Playwright no puede iniciar el navegador
+  - [x] Test: respeta el timeout configurable (default 5 min)
+  - [x] Confirmar que los tests fallan (fase roja)
+- [x] Task: Implementar `BrowserAuthHandler` (08d451a)
+  - [x] Crear `src/auth/browser-auth-handler.ts`
+  - [x] Implementar `openBrowserForAuth(authUrl: string, options?: { timeoutMs?: number }): Promise<void>`
+  - [x] Manejo de error si Playwright no está disponible
+  - [x] Confirmar que los tests pasan (fase verde)
+  - [x] Refactorizar si es necesario
+- [x] Task: Verificar cobertura de tests (`npm run test:coverage` ≥80%) (08d451a)
+- [x] Task: Commitear cambios (`feat(auth): Add Playwright browser auth handler`) (08d451a)
 - [ ] Task: Conductor - User Manual Verification 'Fase 2: Integrador de Playwright' (Protocol in workflow.md)
 
 ---
