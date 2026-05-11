@@ -115,7 +115,8 @@ The server can be configured through environment variables or command line argum
 ### Environment Variables
 
 - `API_BASE_URL` - Base URL for the API endpoints
-- `OPENAPI_SPEC_PATH` - Path or URL to OpenAPI specification
+- `OPENAPI_SPEC_PATH` - Path or URL to OpenAPI specification (single-spec mode)
+- `OPENAPI_SPEC_PATH_<N>` - Numbered variables (`OPENAPI_SPEC_PATH_1`, `OPENAPI_SPEC_PATH_2`, …) to enable **multi-spec mode**: each numbered variable points to a separate OpenAPI spec and its tools are namespaced with the number as a suffix (e.g. `get_users_1`, `get_users_2`). See [Multi-Spec Mode](#multi-spec-mode-openapi_spec_path_n) below.
 - `OPENAPI_SPEC_FROM_STDIN` - Set to "true" to read OpenAPI spec from standard input
 - `OPENAPI_SPEC_INLINE` - Provide OpenAPI spec content directly as a string
 - `API_HEADERS` - Comma-separated key:value pairs for API headers
@@ -200,12 +201,19 @@ const server = new OpenAPIServer({
 ### How It Works
 
 1. The server invokes the API tool as usual.
-2. If the response is a redirect (301/302/303/307/308) with a `Location` URL, or a 401 with an auth URL in the `WWW-Authenticate` header or JSON body (`auth_url`, `login_url`, `authorization_url`), the server intercepts it.
-3. A Chromium browser window opens at the detected auth URL.
-4. You complete the login in the browser.
-5. Once the browser page closes, the tool call resumes and the LLM receives a message to retry the operation.
+2. The response is inspected for an interactive-auth signal, with the following extraction priority:
+   1. **`Location` header** on 3xx redirects (301/302/303/307/308).
+   2. **`WWW-Authenticate` header** on a 401 response.
+   3. **JSON body fields** on a 401 response: `auth_url`, `login_url`, `authorization_url`.
+3. If a URL is found, a Chromium browser window opens at the detected auth URL and the tool call is **suspended** (no response sent to the LLM yet).
+4. You complete the login flow in the browser.
+5. Once the browser page closes (or navigates to the callback), the tool call resumes and the LLM receives a message instructing it to retry the operation.
+
+If `--browser-auth` is **not** enabled, the raw 3xx/401 response is returned to the LLM as today (no behavior change). If Playwright fails to launch Chromium (e.g. headless CI without browsers installed), the server propagates a descriptive MCP error instead of crashing.
 
 > **Note:** Requires `playwright-core` (already included as a dependency). Chromium is downloaded on first use by Playwright if not already installed.
+
+> **Out of scope (today):** capturing/storing the token obtained after login and reusing it for subsequent requests — this is being tracked in a separate spec.
 
 ## Mutual TLS (mTLS)
 
@@ -343,6 +351,66 @@ Only one specification source can be used at a time. The server will validate th
 - `--spec-inline`
 
 If multiple sources are specified, the server will exit with an error message.
+
+## Multi-Spec Mode (`OPENAPI_SPEC_PATH_N`)
+
+You can expose **multiple OpenAPI specifications** simultaneously from a single MCP server instance. This is useful when an API is split across several specs (e.g. one per microservice or per API version) and you want the LLM to see all their endpoints as MCP tools at once.
+
+### How to Enable
+
+Set one or more **numbered** environment variables of the form `OPENAPI_SPEC_PATH_<N>`, where `<N>` is any positive integer. Each variable points to a separate spec (URL or local file path):
+
+```bash
+export API_BASE_URL=https://api.example.com
+export OPENAPI_SPEC_PATH_1=https://api.example.com/users/openapi.json
+export OPENAPI_SPEC_PATH_2=https://api.example.com/orders/openapi.json
+export OPENAPI_SPEC_PATH_3=./local-specs/billing.yaml
+npx @kaizen-gcc/openapi-mcp-server
+```
+
+In a Claude Desktop / MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "openapi": {
+      "command": "npx",
+      "args": ["-y", "@kaizen-gcc/openapi-mcp-server"],
+      "env": {
+        "API_BASE_URL": "https://api.example.com",
+        "OPENAPI_SPEC_PATH_1": "https://api.example.com/users/openapi.json",
+        "OPENAPI_SPEC_PATH_2": "https://api.example.com/orders/openapi.json"
+      }
+    }
+  }
+}
+```
+
+### Tool Naming
+
+To avoid collisions between specs that may share endpoint names, every tool generated from a numbered spec gets the number appended as a **suffix**:
+
+| Spec source           | Endpoint       | Generated tool name |
+| --------------------- | -------------- | ------------------- |
+| `OPENAPI_SPEC_PATH_1` | `GET /users`   | `get_users_1`       |
+| `OPENAPI_SPEC_PATH_2` | `GET /users`   | `get_users_2`       |
+| `OPENAPI_SPEC_PATH_2` | `POST /orders` | `post_orders_2`     |
+
+The internal tool ID is also namespaced as `<suffix>::<originalToolId>` (e.g. `1::GET::users`). The original tool ID is preserved in tool metadata.
+
+### Precedence and Compatibility
+
+- If **any** `OPENAPI_SPEC_PATH_<N>` variable is set, multi-spec mode takes precedence over `OPENAPI_SPEC_PATH` / `--openapi-spec` (the single-spec value is ignored).
+- Multi-spec mode **cannot** be combined with `--spec-from-stdin` or `--spec-inline` — the server will exit with an error.
+- Numbered variables are loaded in numeric order (`_1`, `_2`, `_3`, …), so tool ordering is deterministic.
+- Each entry can independently be a remote URL (`http://`, `https://`) or a local file path; the loading method is auto-detected per entry.
+- Dynamic meta-tools (`list-api-endpoints`, etc., when `--tools dynamic`) are registered only **once** — they are not suffixed per spec.
+
+### When to Use
+
+- A platform that exposes several independent APIs you want to query from one MCP client.
+- Comparing two versions of the same API side by side (v1 vs v2).
+- Aggregating microservice specs into a single MCP namespace without merging the OpenAPI documents manually.
 
 ## Tool Loading & Filtering Options
 
