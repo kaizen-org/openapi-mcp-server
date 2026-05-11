@@ -1,6 +1,6 @@
 # OpenAPI MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@ivo-toby/mcp-openapi-server)](https://smithery.ai/server/@ivo-toby/mcp-openapi-server)
+[![smithery badge](https://smithery.ai/badge/@kaizen-gcc/openapi-mcp-server)](https://smithery.ai/server/@kaizen-gcc/openapi-mcp-server)
 
 A Model Context Protocol (MCP) server that exposes OpenAPI endpoints as MCP tools, along with optional support for MCP prompts and resources. This server allows Large Language Models to discover and interact with REST APIs defined by OpenAPI specifications through the MCP protocol.
 
@@ -21,7 +21,7 @@ This section covers how to use the MCP server as an end user with Claude Desktop
 
 This MCP server can be used in two ways:
 
-1. **CLI Tool**: Use `npx @ivotoby/openapi-mcp-server` directly with command-line arguments for quick setup
+1. **CLI Tool**: Use `npx @kaizen-gcc/openapi-mcp-server` directly with command-line arguments for quick setup
 2. **Library**: Import and use the `OpenAPIServer` class in your own Node.js applications for custom implementations
 
 The server supports two transport methods:
@@ -45,7 +45,7 @@ No need to clone this repository. Simply configure Claude Desktop to use this MC
   "mcpServers": {
     "openapi": {
       "command": "npx",
-      "args": ["-y", "@ivotoby/openapi-mcp-server"],
+      "args": ["-y", "@kaizen-gcc/openapi-mcp-server"],
       "env": {
         "API_BASE_URL": "https://api.example.com",
         "OPENAPI_SPEC_PATH": "https://api.example.com/openapi.json",
@@ -68,7 +68,7 @@ To use the server with HTTP clients:
 1. No installation required! Use npx to run the package directly:
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --headers "Authorization:Bearer token123" \
@@ -142,7 +142,7 @@ The server can be configured through environment variables or command line argum
 ### Command Line Arguments
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --headers "Authorization:Bearer token123,X-API-Key:your-api-key" \
@@ -167,7 +167,7 @@ This feature is **disabled by default** and must be opted into explicitly.
 ### Enable via CLI
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec ./openapi.yaml \
   --browser-auth
@@ -176,7 +176,7 @@ npx @ivotoby/openapi-mcp-server \
 With a custom timeout (default is 5 minutes = 300 seconds):
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec ./openapi.yaml \
   --browser-auth \
@@ -186,7 +186,7 @@ npx @ivotoby/openapi-mcp-server \
 ### Enable via Library API
 
 ```ts
-import { OpenAPIServer } from "@ivotoby/openapi-mcp-server"
+import { OpenAPIServer } from "@kaizen-gcc/openapi-mcp-server"
 
 const server = new OpenAPIServer({
   apiBaseUrl: "https://api.example.com",
@@ -220,7 +220,7 @@ If `--browser-auth` is **not** enabled, the raw 3xx/401 response is returned to 
 If your upstream API requires client certificate authentication, you can attach TLS credentials directly to outbound requests.
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://secure-api.example.com \
   --openapi-spec https://secure-api.example.com/openapi.json \
   --client-cert ./certs/client.pem \
@@ -235,7 +235,7 @@ TLS-related options only apply when `--api-base-url` uses `https://`.
 For private CAs or encrypted keys:
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://internal-api.example.com \
   --openapi-spec ./openapi.yaml \
   --client-cert ./certs/client.pem \
@@ -262,7 +262,7 @@ The MCP server supports multiple methods for loading OpenAPI specifications, pro
 Load the OpenAPI spec from a remote URL:
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json
 ```
@@ -272,7 +272,7 @@ npx @ivotoby/openapi-mcp-server \
 Load the OpenAPI spec from a local file:
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec ./path/to/openapi.yaml
 ```
@@ -283,18 +283,18 @@ Read the OpenAPI spec from standard input (useful for piping or containerized en
 
 ```bash
 # Pipe from file
-cat openapi.json | npx @ivotoby/openapi-mcp-server \
+cat openapi.json | npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --spec-from-stdin
 
 # Pipe from curl
-curl -s https://api.example.com/openapi.json | npx @ivotoby/openapi-mcp-server \
+curl -s https://api.example.com/openapi.json | npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --spec-from-stdin
 
 # Using environment variable
 export OPENAPI_SPEC_FROM_STDIN=true
-echo '{"openapi": "3.0.0", ...}' | npx @ivotoby/openapi-mcp-server \
+echo '{"openapi": "3.0.0", ...}' | npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com
 ```
 
@@ -303,13 +303,13 @@ echo '{"openapi": "3.0.0", ...}' | npx @ivotoby/openapi-mcp-server \
 Provide the OpenAPI spec content directly as a command line argument:
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --spec-inline '{"openapi": "3.0.0", "info": {"title": "My API", "version": "1.0.0"}, "paths": {}}'
 
 # Using environment variable
 export OPENAPI_SPEC_INLINE='{"openapi": "3.0.0", ...}'
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com
 ```
 
 ### Supported Formats
@@ -429,19 +429,19 @@ Based on the Stainless article "What We Learned Converting Complex OpenAPI Specs
 
 ```bash
 # Load only dynamic meta-tools
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tools dynamic
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tools dynamic
 
 # Load only explicitly specified tools (ignores other filters)
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tools explicit --tool GET::users --tool POST::users
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tools explicit --tool GET::users --tool POST::users
 
 # Load only the GET /users endpoint tool (using all mode with filtering)
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tool GET-users
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tool GET-users
 
 # Load tools tagged with "user" under the "/users" resource
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tag user --resource users
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --tag user --resource users
 
 # Load only POST operations
-npx @ivotoby/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --operation post
+npx @kaizen-gcc/openapi-mcp-server --api-base-url https://api.example.com --openapi-spec https://api.example.com/openapi.json --operation post
 ```
 
 ## Prompts and Resources
@@ -462,19 +462,19 @@ Prompts can be loaded from files, URLs, or inline JSON:
 
 ```bash
 # Load from local file
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --prompts ./prompts.json
 
 # Load from URL
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --prompts https://example.com/mcp/prompts.json
 
 # Inline JSON
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --prompts-inline '[{"name":"greet","title":"Greeting","template":"Hello {{name}}!"}]'
@@ -503,19 +503,19 @@ Resources can be loaded from files, URLs, or inline JSON:
 
 ```bash
 # Load from local file
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --mcp-resources ./resources.json
 
 # Load from URL
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --mcp-resources https://example.com/mcp/resources.json
 
 # Inline JSON
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --mcp-resources-inline '[{"uri":"docs://readme","name":"readme","text":"# Welcome"}]'
@@ -539,7 +539,7 @@ npx @ivotoby/openapi-mcp-server \
 ### Combining Tools, Prompts, and Resources
 
 ```bash
-npx @ivotoby/openapi-mcp-server \
+npx @kaizen-gcc/openapi-mcp-server \
   --api-base-url https://api.example.com \
   --openapi-spec https://api.example.com/openapi.json \
   --prompts ./prompts.json \
@@ -640,7 +640,7 @@ To see debug logs:
 
 2. When using HTTP transport:
    ```bash
-   npx @ivotoby/openapi-mcp-server --transport http &2>debug.log
+   npx @kaizen-gcc/openapi-mcp-server --transport http &2>debug.log
    ```
 
 ---
@@ -661,7 +661,7 @@ Create dedicated MCP servers for specific APIs by importing and configuring the 
 ### Basic Library Usage
 
 ```typescript
-import { OpenAPIServer } from "@ivotoby/openapi-mcp-server"
+import { OpenAPIServer } from "@kaizen-gcc/openapi-mcp-server"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 
 const config = {
@@ -720,7 +720,7 @@ const config = {
 Expose reusable prompts and static resources alongside your API tools:
 
 ```typescript
-import { OpenAPIServer } from "@ivotoby/openapi-mcp-server"
+import { OpenAPIServer } from "@kaizen-gcc/openapi-mcp-server"
 
 const config = {
   name: "my-api-server",
@@ -828,7 +828,7 @@ interface ResourceDefinition {
 For APIs with token expiration, refresh requirements, or complex authentication:
 
 ```typescript
-import { OpenAPIServer, AuthProvider } from "@ivotoby/openapi-mcp-server"
+import { OpenAPIServer, AuthProvider } from "@kaizen-gcc/openapi-mcp-server"
 import { AxiosError } from "axios"
 
 class MyAuthProvider implements AuthProvider {
