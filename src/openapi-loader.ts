@@ -21,6 +21,8 @@ export interface ExtendedTool extends Tool {
   resourceName?: string
   /** Original OpenAPI path before toolId conversion */
   originalPath?: string
+  /** Original tool ID before spec suffix was applied (used for multi-spec routing) */
+  originalToolId?: string
 }
 
 /**

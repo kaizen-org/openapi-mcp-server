@@ -786,7 +786,7 @@ describe("loadConfig", () => {
     const { loadConfig } = await import("../src/config")
 
     expect(() => loadConfig()).toThrow(
-      "OpenAPI spec is required. Use one of: --openapi-spec, --spec-from-stdin, or --spec-inline",
+      "OpenAPI spec is required. Use one of: --openapi-spec, OPENAPI_SPEC_PATH, OPENAPI_SPEC_PATH_1/OPENAPI_SPEC_PATH_2/…, --spec-from-stdin, or --spec-inline",
     )
   })
 

@@ -411,7 +411,11 @@ export class ApiClient {
    * @returns Object containing method and path
    */
   private parseToolId(toolId: string): { method: string; path: string } {
-    return parseToolIdUtil(toolId)
+    // In multi-spec mode, tool IDs are stored with a spec suffix prefix (e.g. "a::GET::users").
+    // The tool's originalToolId field holds the routing ID without the prefix.
+    const toolDef = this.toolsMap.get(toolId) as (Tool & { originalToolId?: string }) | undefined
+    const routingId = toolDef?.originalToolId ?? toolId
+    return parseToolIdUtil(routingId)
   }
 
   /**

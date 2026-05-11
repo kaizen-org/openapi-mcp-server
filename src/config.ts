@@ -4,6 +4,23 @@ import { AuthProvider } from "./auth-provider.js"
 import type { PromptDefinition } from "./prompt-types"
 import type { ResourceDefinition } from "./resource-types"
 
+/**
+ * A single spec entry used in multi-spec mode.
+ * When OPENAPI_SPEC_PATH is a JSON object like {"a":"url1","b":"url2"},
+ * each entry corresponds to one spec. Tools generated from each spec
+ * have the suffix appended to their name (e.g. "get_users_a").
+ */
+export interface SpecEntry {
+  /** Short label used as tool name suffix (e.g. "a", "b") */
+  suffix: string
+  /** Path or URL to the OpenAPI specification */
+  path: string
+  /** How the spec is loaded */
+  specInputMethod: "url" | "file" | "stdin" | "inline"
+  /** Inline content when specInputMethod is 'inline' */
+  inlineSpecContent?: string
+}
+
 export interface OpenAPIMCPServerConfig {
   name: string
   version: string
@@ -13,6 +30,12 @@ export interface OpenAPIMCPServerConfig {
   specInputMethod: "url" | "file" | "stdin" | "inline"
   /** Inline spec content when using 'inline' method */
   inlineSpecContent?: string
+  /**
+   * Multi-spec entries. When set, the server loads all listed specs and
+   * namespaces their tools with the corresponding suffix.
+   * Takes precedence over openApiSpec/specInputMethod/inlineSpecContent.
+   */
+  openApiSpecs?: SpecEntry[]
   headers?: Record<string, string>
   /** AuthProvider for dynamic authentication (takes precedence over headers) */
   authProvider?: AuthProvider
@@ -254,25 +277,63 @@ export function loadConfig(): OpenAPIMCPServerConfig {
   const specInline = argv["spec-inline"] || process.env.OPENAPI_SPEC_INLINE
   const openApiSpec = argv["openapi-spec"] || process.env.OPENAPI_SPEC_PATH
 
-  // Count how many spec input methods are specified
+  // Count how many single-spec input methods are specified
   const specInputCount = [specFromStdin, !!specInline, !!openApiSpec].filter(Boolean).length
 
-  if (specInputCount === 0) {
-    throw new Error(
-      "OpenAPI spec is required. Use one of: --openapi-spec, --spec-from-stdin, or --spec-inline",
-    )
-  }
+  // Numbered env vars (OPENAPI_SPEC_PATH_N) count as a valid spec source on their own;
+  // only enforce the single-spec checks when they are absent.
+  const hasNumberedSpecs = Object.keys(process.env).some((k) => /^OPENAPI_SPEC_PATH_\d+$/.test(k))
 
-  if (specInputCount > 1) {
-    throw new Error("Only one OpenAPI spec input method can be specified at a time")
+  if (!hasNumberedSpecs) {
+    if (specInputCount === 0) {
+      throw new Error(
+        "OpenAPI spec is required. Use one of: --openapi-spec, OPENAPI_SPEC_PATH, " +
+          "OPENAPI_SPEC_PATH_1/OPENAPI_SPEC_PATH_2/…, --spec-from-stdin, or --spec-inline",
+      )
+    }
+
+    if (specInputCount > 1) {
+      throw new Error("Only one OpenAPI spec input method can be specified at a time")
+    }
   }
 
   // Determine spec input method and content
   let specInputMethod: "url" | "file" | "stdin" | "inline"
   let specPath: string
   let inlineSpecContent: string | undefined
+  let openApiSpecs: SpecEntry[] | undefined
 
-  if (specFromStdin) {
+  // Detect multi-spec mode: OPENAPI_SPEC_PATH_1, OPENAPI_SPEC_PATH_2, ... OPENAPI_SPEC_PATH_N
+  // Each numbered variable becomes a SpecEntry; the suffix is the number (1, 2, …N).
+  const numberedSpecEntries = Object.entries(process.env)
+    .filter(([key]) => /^OPENAPI_SPEC_PATH_\d+$/.test(key))
+    .sort(([a], [b]) => {
+      const numA = parseInt(a.replace("OPENAPI_SPEC_PATH_", ""), 10)
+      const numB = parseInt(b.replace("OPENAPI_SPEC_PATH_", ""), 10)
+      return numA - numB
+    })
+
+  if (numberedSpecEntries.length > 0) {
+    // Multi-spec mode — numbered env vars take full precedence.
+    // stdin/inline flags are not compatible with multi-spec mode.
+    if (specFromStdin || specInline) {
+      throw new Error(
+        "Multi-spec mode (OPENAPI_SPEC_PATH_N) cannot be combined with --spec-from-stdin or --spec-inline",
+      )
+    }
+    openApiSpecs = numberedSpecEntries.map(([key, rawPath]) => {
+      const suffix = key.replace("OPENAPI_SPEC_PATH_", "")
+      if (!rawPath) {
+        throw new Error(`Environment variable ${key} is set but empty`)
+      }
+      const method: "url" | "file" =
+        rawPath.startsWith("http://") || rawPath.startsWith("https://") ? "url" : "file"
+      return { suffix, path: rawPath, specInputMethod: method }
+    })
+    // Use the first entry as the canonical single-spec fields (for backward compat)
+    specInputMethod = openApiSpecs[0].specInputMethod
+    specPath = openApiSpecs[0].path
+  } else if (specFromStdin) {
     specInputMethod = "stdin"
     specPath = "stdin"
   } else if (specInline) {
@@ -280,7 +341,7 @@ export function loadConfig(): OpenAPIMCPServerConfig {
     specPath = "inline"
     inlineSpecContent = specInline
   } else if (openApiSpec) {
-    // Determine if it's a URL or file path
+    // Single-spec mode
     if (openApiSpec.startsWith("http://") || openApiSpec.startsWith("https://")) {
       specInputMethod = "url"
     } else {
@@ -288,7 +349,10 @@ export function loadConfig(): OpenAPIMCPServerConfig {
     }
     specPath = openApiSpec
   } else {
-    throw new Error("OpenAPI spec is required")
+    throw new Error(
+      "OpenAPI spec is required. Use one of: --openapi-spec, OPENAPI_SPEC_PATH, " +
+        "OPENAPI_SPEC_PATH_1/OPENAPI_SPEC_PATH_2/…, --spec-from-stdin, or --spec-inline",
+    )
   }
 
   // Combine CLI args and env vars, with CLI taking precedence
@@ -329,6 +393,7 @@ export function loadConfig(): OpenAPIMCPServerConfig {
     openApiSpec: specPath,
     specInputMethod,
     inlineSpecContent,
+    openApiSpecs,
     headers,
     clientCertPath: (argv["client-cert"] as string | undefined) || process.env.CLIENT_CERT_PATH,
     clientKeyPath: (argv["client-key"] as string | undefined) || process.env.CLIENT_KEY_PATH,

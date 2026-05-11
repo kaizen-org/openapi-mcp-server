@@ -1,6 +1,6 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js"
 import { OpenAPISpecLoader, ExtendedTool } from "./openapi-loader"
-import { OpenAPIMCPServerConfig } from "./config"
+import { OpenAPIMCPServerConfig, SpecEntry } from "./config"
 import { OpenAPIV3 } from "openapi-types"
 import { parseToolId as parseToolIdUtil } from "./utils/tool-id.js"
 import { Logger } from "./utils/logger"
@@ -91,9 +91,114 @@ export class ToolsManager {
   }
 
   /**
+   * Load tools from multiple OpenAPI specs, appending a suffix to each tool name and ID.
+   * The suffixed tool ID is used as the map key; originalToolId is stored in tool metadata
+   * so that ApiClient can reconstruct the correct HTTP method+path for routing.
+   */
+  private async initializeMultiSpec(specs: SpecEntry[]): Promise<void> {
+    const combined = new Map<string, Tool>()
+
+    for (const entry of specs) {
+      const spec = await this.specLoader.loadOpenAPISpec(
+        entry.path,
+        entry.specInputMethod,
+        entry.inlineSpecContent,
+      )
+
+      // Store the first spec as the canonical loaded spec (used by ApiClient for content-type etc.)
+      if (!this.loadedSpec) {
+        this.loadedSpec = spec
+      }
+
+      if (this.config.toolsMode === "dynamic") {
+        // Dynamic tools don't benefit from multi-spec suffixes; just create them once
+        this.tools = this.createDynamicTools()
+        return
+      }
+
+      const rawTools = this.specLoader.parseOpenAPISpec(spec)
+
+      for (const [originalToolId, tool] of rawTools.entries()) {
+        const extTool = tool as ExtendedTool
+
+        // Apply the same filters as single-spec mode
+        if (!this.passesFilters(originalToolId, extTool)) {
+          continue
+        }
+
+        // Build the suffixed map key and tool name
+        const suffixedToolId = `${entry.suffix}::${originalToolId}`
+        const suffixedName = `${tool.name}_${entry.suffix}`
+
+        const suffixedTool: ExtendedTool = {
+          ...extTool,
+          name: suffixedName,
+          originalToolId,
+        }
+
+        combined.set(suffixedToolId, suffixedTool)
+        this.logger.error(`Registered tool: ${suffixedToolId} (${suffixedName})`)
+      }
+    }
+
+    this.tools = combined
+  }
+
+  /**
+   * Check whether a tool passes the configured include filters.
+   */
+  private passesFilters(toolId: string, tool: ExtendedTool): boolean {
+    const includeToolsLower = this.config.includeTools?.map((t) => t.toLowerCase()) ?? []
+    const includeOperationsLower =
+      this.config.includeOperations?.map((op) => op.toLowerCase()) ?? []
+    const includeResourcesLower =
+      this.config.includeResources?.map((res) => res.toLowerCase()) ?? []
+    const includeTagsLower = this.config.includeTags?.map((tag) => tag.toLowerCase()) ?? []
+
+    if (includeToolsLower.length > 0) {
+      const toolIdLower = toolId.toLowerCase()
+      const toolNameLower = tool.name.toLowerCase()
+      return includeToolsLower.includes(toolIdLower) || includeToolsLower.includes(toolNameLower)
+    }
+
+    if (
+      includeOperationsLower.length > 0 &&
+      (!tool.httpMethod || !includeOperationsLower.includes(tool.httpMethod.toLowerCase()))
+    ) {
+      return false
+    }
+
+    if (
+      includeResourcesLower.length > 0 &&
+      (!tool.resourceName || !includeResourcesLower.includes(tool.resourceName.toLowerCase()))
+    ) {
+      return false
+    }
+
+    if (includeTagsLower.length > 0) {
+      const toolTags = Array.isArray(tool.tags) ? tool.tags : []
+      if (
+        !toolTags.some(
+          (tag) => typeof tag === "string" && includeTagsLower.includes(tag.toLowerCase()),
+        )
+      ) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
    * Initialize tools from the OpenAPI specification
    */
   async initialize(): Promise<void> {
+    // Multi-spec mode: load each spec and namespace tools by suffix
+    if (this.config.openApiSpecs && this.config.openApiSpecs.length > 0) {
+      await this.initializeMultiSpec(this.config.openApiSpecs)
+      return
+    }
+
     const spec = await this.specLoader.loadOpenAPISpec(
       this.config.openApiSpec,
       this.config.specInputMethod,
